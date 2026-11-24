@@ -106,6 +106,27 @@ coleta:
       ativo: true
       usa_playwright: false
 
+    # Instituto Serrapilheira - Todas as chamadas.
+    # Página com grid Visual Composer contendo editais de ciência, jornalismo, formação.
+    - nome: "serrapilheira"
+      classe: "scrapers.serrapilheira.ScraperSerrapilheira"
+      url: "https://serrapilheira.org/todas-as-chamadas/"
+      orgao: "Instituto Serrapilheira"
+      ativo: true
+      usa_playwright: false
+
+    # FACTO - Fundação de Apoio à Ciência e Tecnologia do IFES.
+    # Editais por ano: /editais/ (2026), /editais-2025/, etc.
+    # ATENÇÃO: Carrega editais via AJAX (botões de ano). Precisa Playwright.
+    # Desativado por enquanto.
+    - nome: "facto"
+      classe: "scrapers.facto.ScraperFACTO"
+      url: "https://facto.org.br/editais/"
+      orgao: "FACTO"
+      ativo: false
+      usa_playwright: true
+      anos: ["2026", "2025"]
+
 extracao:
   # Limite do texto enviado à IA (o llm_client também aplica uma trava).
   limite_caracteres: 12000
