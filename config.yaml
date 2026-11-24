@@ -95,6 +95,17 @@ coleta:
       ativo: true
       usa_playwright: false
 
+    # Portal de Editais IFES - ZIP com JSONs estruturados (58+ editais).
+    # Fonte excelente para categoria 'instituicoes_federais': PIBIC, eventos,
+    # feiras, TCC, estágios, inovação. Atualizado pelo IFES Serra.
+    - nome: "portal_editais_ifes"
+      classe: "scrapers.portal_editais_ifes.ScraperPortalEditaisIFES"
+      url: "https://ifesserra-lab.github.io/portal_edital/dados/"
+      zip_url: "https://ifesserra-lab.github.io/portal_edital/dados-editais.zip"
+      orgao: "Portal Editais IFES"
+      ativo: true
+      usa_playwright: false
+
 extracao:
   # Limite do texto enviado à IA (o llm_client também aplica uma trava).
   limite_caracteres: 12000
