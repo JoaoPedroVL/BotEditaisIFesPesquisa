@@ -1,0 +1,135 @@
+# =====================================================================
+# Configuração central do robô de editais.
+# Segredos (chaves, tokens) NÃO ficam aqui: use o arquivo .env.
+# =====================================================================
+
+ia:
+  base_url: "https://integrate.api.nvidia.com/v1"
+
+  # Ordem de prioridade. O cliente tenta o primeiro; se falhar, passa ao
+  # próximo. Nomes validados no catálogo em 24/11/2026 com
+  # `python testar_llm.py --listar-modelos`.
+  #
+  # - nano-omni: 30B, raciocina antes de responder (bom custo/qualidade);
+  # - super-vl: 120B, reserva mais forte (mais lento);
+  # - bolt-e4b: 4B, rápido e sem raciocínio oculto (último recurso).
+  modelos:
+    - "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+    - "nvidia/nemotron-3.5-super-vl-120b-a12b"
+    - "nvidia/nemotron-3.5-bolt-e4b"
+
+  # Temperatura baixa: respostas mais determinísticas e fiéis ao texto.
+  temperatura: 0.15
+  # Modelos de raciocínio consomem tokens "pensando". 4096 evita que o JSON
+  # seja cortado antes de começar.
+  max_tokens: 4096
+  timeout_segundos: 120
+
+  # Plano gratuito (~40 req/min): 1.6 s entre chamadas = 37,5 req/min.
+  # O limite vale para todas as chamadas, incluindo retentativas.
+  pausa_entre_chamadas: 1.6
+
+  # Em erro 429/5xx/timeout: tenta de novo uma vez após 2 s e, se falhar,
+  # passa para o próximo modelo.
+  max_tentativas_por_modelo: 2
+  espera_entre_tentativas: 2
+
+  # Trava de segurança: limite de texto enviado para a IA.
+  limite_caracteres_texto: 12000
+
+coleta:
+  # User-Agent identificado (boa prática e exigência de muitos sites).
+  user_agent: "MonitorEditaisONG/1.0 (+contato: diretor@exemplo.org.br)"
+  pausa_minima_segundos: 2
+  pausa_maxima_segundos: 3
+  timeout_segundos: 30
+
+  # Pré-filtro: o título/link precisa conter ao menos uma destas palavras.
+  palavras_chave:
+    - "edital"
+    - "chamada pública"
+    - "chamada publica"
+    - "chamada"
+    - "seleção"
+    - "selecao"
+    - "fomento"
+    - "apoio"
+    - "projetos"
+
+  # Quantos itens processar por fonte em cada execução diária.
+  max_itens_por_fonte: 50
+  # Quantas análises antigas reprocessar por execução (falhas de IA).
+  max_pendentes_analise: 10
+
+  # Para adicionar uma fonte: crie a classe em scrapers/ e acrescente um
+  # item aqui. `classe` é o caminho completo do módulo + classe.
+  # URLs validadas em 24/11/2026.
+  fontes:
+    - nome: "cnpq"
+      classe: "scrapers.cnpq.ScraperCNPq"
+      url: "https://www.gov.br/cnpq/pt-br/chamadas/abertas-para-submissao"
+      orgao: "CNPq"
+      ativo: true
+      usa_playwright: false
+
+    - nome: "fapes"
+      classe: "scrapers.fapes.ScraperFapes"
+      url: "https://fapes.es.gov.br/inovacao"
+      orgao: "FAPES"
+      ativo: true
+      usa_playwright: false
+
+    - nome: "capes"
+      classe: "scrapers.capes.ScraperCapes"
+      url: "https://www.gov.br/capes/pt-br/assuntos/editais-e-resultados-capes"
+      orgao: "CAPES"
+      ativo: true
+      usa_playwright: false
+
+    # O Sebrae publica por unidade estadual. Esta URL é a unidade RS
+    # (server-rendered e estável). Troque pela UF desejada quando disponível.
+    - nome: "sebrae"
+      classe: "scrapers.sebrae.ScraperSebrae"
+      url: "https://sebraers.com.br/editais-e-licitacoes-chamadas-publicas/"
+      orgao: "Sebrae RS"
+      ativo: true
+      usa_playwright: false
+
+extracao:
+  # Limite do texto enviado à IA (o llm_client também aplica uma trava).
+  limite_caracteres: 12000
+  # Quantos PDFs anexos baixar por edital.
+  max_pdfs: 2
+  # Se o texto for maior, os trechos ao redor destas palavras são priorizados.
+  palavras_priorizadas:
+    - "objeto"
+    - "quem pode participar"
+    - "público-alvo"
+    - "publico-alvo"
+    - "elegibilidade"
+    - "requisitos"
+    - "prazo"
+    - "inscrições"
+    - "inscricoes"
+    - "valor"
+    - "recursos"
+    - "contrapartida"
+
+banco:
+  caminho: "data/editais.db"
+
+notificacao:
+  # Canal de envio: "email", "telegram" ou "whatsapp".
+  # Para receber só para você, use "email" (SMTP) ou "telegram".
+  canal: "email"
+  # Formato: "resumo" = um único e-mail/mensagem por execução com todos os
+  # editais; "por_edital" = uma mensagem para cada edital.
+  formato: "resumo"
+  # Pausa entre mensagens quando houver vários editais no dia.
+  pausa_entre_mensagens: 2
+  # Versão da Graph API usada pelo WhatsApp Cloud API.
+  whatsapp_versao: "v23.0"
+
+agendamento:
+  # Horário local da execução diária (usado pelo APScheduler ou pelo cron).
+  horario: "07:00"

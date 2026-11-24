@@ -1,0 +1,26 @@
+# Segredos
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Banco e logs gerados em execução
+data/*.db
+data/*.db-journal
+data/*.sqlite*
+logs/*.log
+logs/*.log.*
+
+# Playwright
+.playwright/
+playwright-report/
+
+# Sistema / editores
+.DS_Store
+.idea/
+.vscode/
+.pytest_cache/
