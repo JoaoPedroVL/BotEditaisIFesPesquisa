@@ -231,7 +231,9 @@ class ScraperBase(ABC):
     def _normalizar_itens(
         self, brutos: list[EditalColetado | dict[str, Any]]
     ) -> list[EditalColetado]:
-        palavras = self.config_coleta.get("palavras_chave") or PALAVRAS_PADRAO
+        # Prioriza palavras-chave da fonte, cai para global, depois padrão
+        palavras_fonte = self.config_fonte.get("palavras_chave")
+        palavras = palavras_fonte or self.config_coleta.get("palavras_chave") or PALAVRAS_PADRAO
         palavras_norm = [normalizar_texto(p) for p in palavras if normalizar_texto(p)]
         usar_prefiltro = bool(self.config_fonte.get("prefiltro_palavras_chave", True))
 
