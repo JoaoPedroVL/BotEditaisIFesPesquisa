@@ -118,54 +118,17 @@ coleta:
     # Google Research Blog - RSS feed com posts de pesquisa em IA, ML, ciência, saúde, clima.
 # Não são editais de fomento, mas posts de pesquisa relevantes para IFs/ONGs.
 # Feed: https://research.google/blog/rss/
+    # Google Research Blog - RSS feed com posts de pesquisa em IA, ML, ciência, saúde, clima.
+    # Não são editais de fomento, mas posts de pesquisa relevantes para IFs/ONGs.
+    # Feed: https://research.google/blog/rss/
+    # DESATIVADO: fora do escopo de editais de fomento
     - nome: "google_research"
       classe: "scrapers.google_research.ScraperGoogleResearch"
-      url: "https://research.google/blog/"  # URL base (obrigatório pela base)
+      url: "https://research.google/blog/"
       feed_url: "https://research.google/blog/rss/"
       orgao: "Google Research"
-      ativo: true
+      ativo: false
       usa_playwright: false
-      # Palavras-chave específicas para esta fonte (título deve conter pelo menos uma)
-      palavras_chave:
-        - "ai"
-        - "ia"
-        - "machine learning"
-        - "aprendizado"
-        - "pesquisa"
-        - "research"
-        - "google"
-        - "gemini"
-        - "modelo"
-        - "model"
-        - "climate"
-        - "clima"
-        - "health"
-        - "saúde"
-        - "health"
-        - "education"
-        - "educação"
-        - "open source"
-        - "código aberto"
-        - "sustainability"
-        - "sustentabilidade"
-        - "quantum"
-        - "quântico"
-        - "bio"
-        - "neural"
-        - "transformer"
-        - "llm"
-        - "generative"
-        - "generativo"
-      # Categorias de interesse (case-insensitive, substring match)
-      categorias_interesse:
-        - "education innovation"
-        - "climate & sustainability"
-        - "health & bioscience"
-        - "education"
-        - "open source"
-        - "general science"
-        - "earth ai"
-        - "algorithms & theory"
 
 extracao:
   # Limite do texto enviado à IA (o llm_client também aplica uma trava).
@@ -203,5 +166,9 @@ notificacao:
   whatsapp_versao: "v23.0"
 
 agendamento:
-  # Horário local da execução diária (usado pelo APScheduler ou pelo cron).
+  # Cron expression para APScheduler (croniter).
+  # Exemplo: "0 6 * * 1,4" = segunda e quinta às 06:00 (America/Sao_Paulo).
+  # Para usar cron do sistema, comente esta seção e use crontab -e.
+  cron: "0 6 * * 1,4"
+  # Horário legado (usado apenas se 'cron' não estiver definido).
   horario: "07:00"

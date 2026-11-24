@@ -648,37 +648,65 @@ def agendar(
         )
         return 1
 
-    horario = str((config.get("agendamento") or {}).get("horario", "07:00"))
-    try:
-        hora, minuto = (int(parte) for parte in horario.split(":"))
-    except (ValueError, TypeError):
-        logger.error("Horário inválido no config.yaml: %r (use HH:MM).", horario)
-        return 2
+    cfg_ag = config.get("agendamento") or {}
+    cron_expr = cfg_ag.get("cron")
 
     scheduler = BlockingScheduler(timezone="America/Sao_Paulo")
-    scheduler.add_job(
-        executar,
-        "cron",
-        hour=hora,
-        minute=minuto,
-        kwargs={
-            "config": config,
-            "fontes": fontes,
-            "dry_run": dry_run,
-            "limite_itens": limite_itens,
-        },
-        id="monitor-editais",
-        replace_existing=True,
-        max_instances=1,
-        coalesce=True,
-    )
 
-    logger.info(
-        "Agendado para todos os dias às %02d:%02d (America/Sao_Paulo). "
-        "Pressione Ctrl+C para sair.",
-        hora,
-        minuto,
-    )
+    if cron_expr:
+        # Usa expressão cron completa (ex: "0 6 * * 1,4" = seg/qui 06:00)
+        scheduler.add_job(
+            executar,
+            "cron",
+            cron=cron_expr,
+            kwargs={
+                "config": config,
+                "fontes": fontes,
+                "dry_run": dry_run,
+                "limite_itens": limite_itens,
+            },
+            id="monitor-editais",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+        logger.info(
+            "Agendado com cron: %s (America/Sao_Paulo). Pressione Ctrl+C para sair.",
+            cron_expr,
+        )
+    else:
+        # Fallback: horario legado "HH:MM" (diário)
+        horario = str(cfg_ag.get("horario", "07:00"))
+        try:
+            hora, minuto = (int(parte) for parte in horario.split(":"))
+        except (ValueError, TypeError):
+            logger.error("Horário inválido no config.yaml: %r (use HH:MM).", horario)
+            return 2
+
+        scheduler.add_job(
+            executar,
+            "cron",
+            hour=hora,
+            minute=minuto,
+            kwargs={
+                "config": config,
+                "fontes": fontes,
+                "dry_run": dry_run,
+                "limite_itens": limite_itens,
+            },
+            id="monitor-editais",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
+        logger.info(
+            "Agendado para todos os dias às %02d:%02d (America/Sao_Paulo). "
+            "Pressione Ctrl+C para sair.",
+            hora,
+            minuto,
+        )
+
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
