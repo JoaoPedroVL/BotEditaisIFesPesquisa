@@ -10,6 +10,9 @@ Variáveis no .env:
     EMAIL_USER=seuemail@gmail.com
     EMAIL_PASSWORD=senha-de-app
     EMAIL_DESTINO=seuemail@gmail.com
+    EMAIL_DESTINO_IFES=outro@email.com   (opcional; segundo canal)
+    # Vários destinatários: separe por vírgula ou ponto e vírgula.
+    EMAIL_DESTINO=a@x.com,b@y.com
     EMAIL_REMETENTE=seuemail@gmail.com   (opcional; padrão = EMAIL_USER)
     EMAIL_SSL=0                          (opcional; use 1 para porta 465)
     EMAIL_TLS=1                          (opcional; STARTTLS na porta 587)
@@ -44,11 +47,19 @@ class NotificadorEmail(Notificador):
         self.porta = int(os.getenv("EMAIL_PORT") or 587)
         self.usuario = (os.getenv("EMAIL_USER") or "").strip()
         self.senha = (os.getenv("EMAIL_PASSWORD") or "").strip()
-        # Permite sobrescrever o destino (para segundo canal IFES)
-        self.destino = (destino_override or os.getenv("EMAIL_DESTINO") or self.usuario).strip()
+        # Permite sobrescrever o destino (para segundo canal IFES).
+        # Aceita vários endereços separados por vírgula ou ponto e vírgula.
+        destino_bruto = (destino_override or os.getenv("EMAIL_DESTINO") or self.usuario).strip()
+        self.destinos = [
+            endereco.strip()
+            for endereco in destino_bruto.replace(";", ",").split(",")
+            if endereco.strip()
+        ]
+        # Mantém o atributo antigo por compatibilidade (string com todos).
+        self.destino = ", ".join(self.destinos)
         self.remetente = (os.getenv("EMAIL_REMETENTE") or self.usuario).strip()
 
-        if not self.usuario or not self.senha or not self.destino:
+        if not self.usuario or not self.senha or not self.destinos:
             raise ErroNotificador(
                 "E-mail: preencha EMAIL_USER, EMAIL_PASSWORD e EMAIL_DESTINO no .env."
             )
@@ -71,7 +82,7 @@ class NotificadorEmail(Notificador):
         email = EmailMessage()
         email["Subject"] = self._assunto(mensagem, prefixo)
         email["From"] = formataddr(("Monitor de Editais", self.remetente))
-        email["To"] = self.destino
+        email["To"] = ", ".join(self.destinos)
         email.set_content(mensagem)
 
         servidor = None
@@ -100,5 +111,5 @@ class NotificadorEmail(Notificador):
                 except Exception:  # noqa: BLE001 - encerramento best-effort
                     pass
 
-        logger.info("E-mail: mensagem enviada para %s.", self.destino)
+        logger.info("E-mail: mensagem enviada para %s.", ", ".join(self.destinos))
         return True
