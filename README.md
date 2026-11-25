@@ -26,7 +26,7 @@ config.yaml ──> scrapers ──> extractor ──> database (SQLite)
 | Análise por IA com fallback entre modelos | ✅ |
 | Filtro final (`sim`/`incerto`) e mensagens | ✅ |
 | Telegram funcional / e-mail funcional / WhatsApp preparado | ✅ |
-| `--dry-run`, `--teste-fonte`, `--agendar` | ✅ |
+| `--dry-run`, `--teste-fonte`, `--agendar`, `--somente-envio` | ✅ |
 | Testes automatizados | ✅ 36 testes |
 
 O primeiro teste real em `--dry-run` rodou as quatro fontes e produziu JSON
@@ -119,6 +119,7 @@ EMAIL_PORT=587
 EMAIL_USER=seuemail@gmail.com
 EMAIL_PASSWORD=abcd efgh ijkl mnop   # senha de app (16 letras)
 EMAIL_DESTINO=seuemail@gmail.com
+EMAIL_DESTINO_IFES=outro@gmail.com
 EMAIL_REMETENTE=seuemail@gmail.com
 EMAIL_SSL=0
 EMAIL_TLS=1
@@ -126,7 +127,9 @@ EMAIL_TLS=1
 
 - Porta `587` + `EMAIL_TLS=1` (STARTTLS) é o padrão.
 - Para porta `465`, use `EMAIL_SSL=1`.
-- `EMAIL_DESTINO` pode ser outro endereço (ex.: o e-mail do diretor da ONG).
+- `EMAIL_DESTINO` recebe o resumo de ONGs; `EMAIL_DESTINO_IFES`, o de IFES.
+- Cada variável aceita **vários destinatários** separados por vírgula, por exemplo:
+  `EMAIL_DESTINO=wizardbr41@gmail.com,homgomes@gmail.com`.
 - Outlook/Zoho/outros: troque `EMAIL_HOST`/`EMAIL_PORT` conforme o provedor.
 - A **senha normal do Gmail não funciona**; é obrigatório usar a senha de app.
 
@@ -173,7 +176,8 @@ mensagem de erro indica qual variável falta.
 | `extracao.limite_caracteres` | tamanho do texto enviado à IA |
 | `notificacao.canal` | `email`, `telegram` ou `whatsapp` |
 | `notificacao.formato` | `resumo` (um envio por execução) ou `por_edital` |
-| `agendamento.horario` | horário do modo `--agendar` |
+| `agendamento.cron` | expressão cron do modo `--agendar` (ex.: `0 6 * * 1,4`) |
+| `agendamento.horario` | horário do modo `--agendar` (usado se `cron` não existir) |
 
 ### Quanto é lido e quanto é enviado
 
@@ -219,9 +223,15 @@ Sempre a partir da raiz do projeto:
 # execução real (envia pelo canal configurado)
 .venv/bin/python main.py
 
-# executa todos os dias às 07:00 e fica em primeiro plano
+# reenvia o que já está analisado no banco (sem coletar nem chamar a IA)
+.venv/bin/python main.py --somente-envio
+
+# executa nos dias/horários do agendamento.cron e fica em primeiro plano
 .venv/bin/python main.py --agendar
 ```
+
+O `--somente-envio` é útil depois de corrigir `EMAIL_DESTINO`/`EMAIL_DESTINO_IFES`:
+ele monta os resumos com as análises já salvas e dispara os e-mails pendentes.
 
 ### O que o `--dry-run` faz
 

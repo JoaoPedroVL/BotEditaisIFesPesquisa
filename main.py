@@ -714,6 +714,72 @@ def agendar(
     return 0
 
 
+def executar_somente_envio(config: dict[str, Any], *, dry_run: bool = False) -> int:
+    """Reenvia pendências já analisadas no banco, sem coletar nem chamar a IA.
+
+    Útil para reprocessar falhas de envio ou reaproveitar uma análise já feita
+    (por exemplo, depois de corrigir os destinatários no .env).
+    """
+    banco = BancoEditais((config.get("banco") or {}).get("caminho", "data/editais.db"))
+    banco.inicializar()
+
+    notificador_ongs: Notificador | None = None
+    notificador_ifes: Notificador | None = None
+    if not dry_run:
+        try:
+            cfg_notif = config.get("notificacao") or {}
+            from notifier.email import NotificadorEmail
+
+            notificador_ongs = NotificadorEmail(cfg_notif)
+            notificador_ifes = NotificadorEmail(
+                cfg_notif, destino_override=os.getenv("EMAIL_DESTINO_IFES")
+            )
+            logger.info(
+                "Reenvio: ONGs -> %s | IFES -> %s",
+                ", ".join(notificador_ongs.destinos),
+                ", ".join(notificador_ifes.destinos),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Notificações desativadas nesta execução: %s", exc)
+            return 1
+
+    cfg_notificacao = config.get("notificacao") or {}
+    pausa = float(cfg_notificacao.get("pausa_entre_mensagens", 2))
+    formato = str(cfg_notificacao.get("formato") or "resumo").strip().lower()
+    modo_resumo = formato in ("resumo", "digest", "diario", "diário")
+    resumo_ongs: list[tuple[int, str]] | None = [] if modo_resumo else None
+    resumo_ifes: list[tuple[int, str]] | None = [] if modo_resumo else None
+
+    processar_pendentes_envio(
+        banco=banco,
+        notificador_ongs=notificador_ongs,
+        notificador_ifes=notificador_ifes,
+        dry_run=dry_run,
+        pausa=pausa,
+        resumo_ongs=resumo_ongs,
+        resumo_ifes=resumo_ifes,
+    )
+
+    if modo_resumo:
+        enviar_resumo_diario(
+            resumo_ongs=resumo_ongs,
+            resumo_ifes=resumo_ifes,
+            banco=banco,
+            notificador_ongs=notificador_ongs,
+            notificador_ifes=notificador_ifes,
+            dry_run=dry_run,
+        )
+
+    stats = banco.estatisticas()
+    logger.info(
+        "Resumo do banco | total=%d | pendentes_envio=%d | enviados=%d",
+        stats["total"],
+        stats["pendentes_envio"],
+        stats["enviados"],
+    )
+    return 0
+
+
 # ----------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------
@@ -749,6 +815,11 @@ def criar_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Mantém o processo rodando e executa diariamente no horário configurado.",
     )
+    parser.add_argument(
+        "--somente-envio",
+        action="store_true",
+        help="Reenvia pendências já analisadas no banco, sem coletar nem chamar a IA.",
+    )
     parser.add_argument("--debug", action="store_true", help="Loga em nível DEBUG.")
     return parser
 
@@ -762,6 +833,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     config = carregar_config(args.config)
+
+    if args.somente_envio:
+        return executar_somente_envio(config, dry_run=args.dry_run)
 
     if args.agendar:
         return agendar(
