@@ -10,6 +10,8 @@ venv/
 
 # Banco e logs gerados em execução
 data/*.db
+# Exceção: o banco principal é versionado para o GitHub Actions retomar de onde parou
+!data/editais.db
 data/*.db-journal
 data/*.sqlite*
 logs/*.log

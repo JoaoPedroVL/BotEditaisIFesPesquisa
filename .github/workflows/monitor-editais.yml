@@ -11,7 +11,11 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: monitor-editais
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -93,6 +97,20 @@ jobs:
         if: github.event_name == 'schedule'
         run: |
           python main.py
+
+      - name: Persistir banco (para o próximo run enviar só os novos)
+        if: success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/editais.db)" ]; then
+            git add data/editais.db
+            git commit -m "chore: atualiza banco de editais [skip ci]"
+            git pull --rebase --autostash origin main || true
+            git push
+          else
+            echo "Banco sem alterações; nada a persistir."
+          fi
 
       - name: Upload logs (se houver erro)
         if: failure()
