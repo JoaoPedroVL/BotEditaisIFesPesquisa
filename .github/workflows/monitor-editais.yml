@@ -84,10 +84,10 @@ jobs:
           EOF
           chmod 600 .env
 
-      - name: Run monitor (dry-run first to verify)
+      - name: Run monitor (manual real send)
         if: github.event_name == 'workflow_dispatch'
         run: |
-          python main.py --dry-run --limite-itens 3
+          python main.py
 
       - name: Run monitor (produção)
         if: github.event_name == 'schedule'
