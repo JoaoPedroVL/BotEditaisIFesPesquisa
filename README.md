@@ -399,3 +399,4 @@ Ajuste fino útil:
    no terminal.
 5. **Quer reprocessar um edital** → apague a linha correspondente em
    `data/editais.db` (ou o banco inteiro) e rode novamente.
+
